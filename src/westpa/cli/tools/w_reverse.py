@@ -256,7 +256,16 @@ class W_Reverse(WESTTool):
                                     break
                             if file_not_found:
                                 log.warning(
-                                    f"File {self.rst_file} is not present in the restart data of {self.traj_seg.format(n_iter=iteration)}"
+                                    f"File {self.rst_file} is not present in the restart data of {self.traj_seg.format(n_iter=iteration)}. Looking for other trajectory files"
+                                )
+                                _, traj_file = find_top_traj_file(tmpdirname, [], self.traj_exc_exts)
+                                if not traj_file:
+                                    _, traj_file = find_top_traj_file(tmpdirname, [], self.traj_or_top_exts)
+                                extension = traj_file.split('/')[-1].split('.')[-1].lower()
+                                rst_dest_name = f"{iteration:06d}_{walker:06d}.{extension}"
+                                shutil.move(
+                                    traj_file,
+                                    f"{self.output_bstates_dir}/{rst_dest_name}",
                                 )
                         else:
                             _, traj_file = find_top_traj_file(tmpdirname, [], self.traj_exc_exts)
