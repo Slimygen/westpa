@@ -21,7 +21,7 @@ class Test_W_Reverse(unittest.TestCase):
         assert os.path.isfile('./bstates_reverse/000003_000000.xml'), "The 000003_000000.xml file was not generated."
         assert cmp(
             os.path.join(ref_dir, 'bstates_no_hdf5.txt'), './bstates_reverse/bstates.txt'
-        ), 'The reference bstates.txt and the produced bstates.txt are notthe same'
+        ), 'The reference bstates.txt and the produced bstates.txt are not the same'
         shutil.rmtree('traj_segs')
         os.remove('west.h5')
         os.remove('west.cfg')
@@ -39,7 +39,7 @@ class Test_W_Reverse(unittest.TestCase):
         assert os.path.isfile('./bstates_reverse/000003_000000.xml'), "The 000003_000000.xml file was not generated."
         assert cmp(
             os.path.join(ref_dir, 'bstates_hdf5.txt'), './bstates_reverse/bstates.txt'
-        ), 'The reference bstates.txt and the produced bstates.txt are notthe same'
+        ), 'The reference bstates.txt and the produced bstates.txt are not the same'
         shutil.rmtree('traj_segs')
         os.remove('west.h5')
         os.remove('west.cfg')
@@ -57,7 +57,7 @@ class Test_W_Reverse(unittest.TestCase):
         assert os.path.isfile('./bstates_reverse/000003_000000.xml'), "The 000003_000000.xml file was not generated."
         assert cmp(
             os.path.join(ref_dir, 'bstates_hdf5.txt'), './bstates_reverse/bstates.txt'
-        ), 'The reference bstates.txt and the produced bstates.txt are notthe same'
+        ), 'The reference bstates.txt and the produced bstates.txt are not the same'
         shutil.rmtree('traj_segs')
         os.remove('west.h5')
         os.remove('west.cfg')
