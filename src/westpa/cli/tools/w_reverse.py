@@ -161,7 +161,7 @@ class W_Reverse(WESTTool):
         if starts_with_slash:
             self.traj_segs_path = f'/{self.traj_segs_path}'
         if self.h5_framework:
-            self.traj_seg = f'{self.traj_segs_path}/{traj_seg_file_name}'
+            self.traj_seg = os.path.join(self.traj_segs_path, traj_seg_file_name)
         self.max_n_bstates = int(args.max_n_bstates)
         if args.rst_file:
             self.rst_file = str(args.rst_file).lower()
@@ -178,8 +178,6 @@ class W_Reverse(WESTTool):
             else:
                 self.traj_exc_exts.append(i)
         self.output_bstates_dir = str(args.output_bstates_dir)
-        if os.path.isdir(self.output_bstates_dir):
-            shutil.rmtree(self.output_bstates_dir)
         self.output_bstates_file = str(args.output_bstates_file)
         self.use_weights = args.use_weights
 
@@ -212,9 +210,9 @@ class W_Reverse(WESTTool):
         # succ_pairs = [(73, 130, 5.991585103556223e-13), (74, 132, 7.489481379445279e-14), (74, 150, 7.489481379445279e-14)]
         # succ_pairs = [(73, 130, 5.991585103556223e-13)]
         # make directory for bstates_reverse if it doesn't already exist
-        os.makedirs(self.output_bstates_dir)
+        os.makedirs(self.output_bstates_dir, exist_ok=True)
         # create bstates.txt file
-        with open(f"{self.output_bstates_dir}/{self.output_bstates_file}", "w") as bstates_f:
+        with open(os.path.join(self.output_bstates_dir, self.output_bstates_file), "w") as bstates_f:
 
             # Number of reverse bstates created
             # different totals if the max is less than total succ_pairs to loop
@@ -250,8 +248,7 @@ class W_Reverse(WESTTool):
                                 if temp_file.lower() == self.rst_file:
                                     file_not_found = False
                                     shutil.move(
-                                        f"{tmpdirname}/{temp_file}",
-                                        f"{self.output_bstates_dir}/{iteration:06d}_{walker:06d}.{self.rst_extension}",
+                                        os.path.join(tmpdirname, temp_file), os.path.join(self.output_bstates_dir, rst_dest_name)
                                     )
                                     break
                             if file_not_found:
@@ -263,20 +260,14 @@ class W_Reverse(WESTTool):
                                     _, traj_file = find_top_traj_file(tmpdirname, [], self.traj_or_top_exts)
                                 extension = traj_file.split('/')[-1].split('.')[-1].lower()
                                 rst_dest_name = f"{iteration:06d}_{walker:06d}.{extension}"
-                                shutil.move(
-                                    traj_file,
-                                    f"{self.output_bstates_dir}/{rst_dest_name}",
-                                )
+                                shutil.move(traj_file, os.path.join(self.output_bstates_dir, rst_dest_name))
                         else:
                             _, traj_file = find_top_traj_file(tmpdirname, [], self.traj_exc_exts)
                             if not traj_file:
                                 _, traj_file = find_top_traj_file(tmpdirname, [], self.traj_or_top_exts)
                             extension = traj_file.split('/')[-1].split('.')[-1].lower()
                             rst_dest_name = f"{iteration:06d}_{walker:06d}.{extension}"
-                            shutil.move(
-                                traj_file,
-                                f"{self.output_bstates_dir}/{rst_dest_name}",
-                            )
+                            shutil.move(traj_file, os.path.join(self.output_bstates_dir, rst_dest_name))
                 else:
                     if not self.rst_file:
                         log.warning(
@@ -290,11 +281,8 @@ class W_Reverse(WESTTool):
                         .format(n_iter=iteration, seg_id=walker)
                     )
                     # os.listdir(seg_path)
-                    rst_file_path = f'{seg_path}/{self.rst_file}'
-                    # if bstate file exists, skip
-                    if os.path.exists(f"{self.output_bstates_dir}/{rst_dest_name}"):
-                        continue
-                    shutil.copyfile(rst_file_path, f"{self.output_bstates_dir}/{rst_dest_name}")
+                    rst_file_path = os.path.join(seg_path, self.rst_file)
+                    shutil.copyfile(rst_file_path, os.path.join(self.output_bstates_dir, rst_dest_name))
                 # fill out the bstates.txt file with name and weight
                 # but only use weights if requested, otherwise use equal weights
                 # bstates.txt row format: bstate_n | weight | bstate_filename
