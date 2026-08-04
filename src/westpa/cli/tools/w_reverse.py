@@ -286,7 +286,7 @@ class W_Reverse(WESTTool):
                 if self.use_weights:
                     bstates_f.write(f"{idx} {weight:.3e} {rst_dest_name}\n")
                 else:
-                    bstates_f.write(f"{idx} 1 {rst_dest_name}\n")
+                    bstates_f.write(f"{idx} {1/total_pairs:.3e)} {rst_dest_name}\n")
 
 
 def entry_point():
