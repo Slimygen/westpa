@@ -229,11 +229,10 @@ class W_Reverse(WESTTool):
                 # check if using HDF5 framework
                 if self.h5_framework:
                     with tempfile.TemporaryDirectory() as tmpdirname:
-                        # Extracct the restart data from the .h5 file
-                        h5file = WESTIterationFile(self.traj_seg.format(n_iter=iteration))
-                        restart_data = h5file.read_data('/restart/%d_%d' % (iteration, walker), 'data')
+                        # Extract the restart data from the .h5 file
                         segment = Segment(n_iter=iteration, seg_id=walker, weight=weight)
-                        segment.data['iterh5/restart'] = restart_data
+                        h5file = WESTIterationFile(self.traj_seg.format(n_iter=iteration))
+                        h5file.read_restart(segment)
                         restart_writer(tmpdirname, segment)
                         # Look at all files in the temp directory
                         if self.rst_file:
