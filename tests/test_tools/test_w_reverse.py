@@ -1,7 +1,9 @@
+import argparse
 import os
 import shutil
 import unittest
 from filecmp import cmp
+from westpa.cli.tools.w_reverse import entry_point
 
 
 class Test_W_Reverse(unittest.TestCase):
@@ -14,7 +16,22 @@ class Test_W_Reverse(unittest.TestCase):
         shutil.copy2(os.path.join(ref_dir, 'west_reverse_no_hdf5.cfg'), './west.cfg')
         shutil.copy2(os.path.join(ref_dir, 'west_reverse_no_hdf5.h5'), './west.h5')
         shutil.copytree(os.path.join(ref_dir, 'traj_segs_reverse_no_hdf5'), './traj_segs')
-        os.system('w_reverse --rst-file seg.xml')
+        with unittest.mock.patch(
+            target='argparse.ArgumentParser.parse_args',
+            return_value=argparse.Namespace(
+                we_h5filename='west.h5',
+                first_iter=1,
+                last_iter=None,
+                config_file='west.cfg',
+                max_n_bstates=10000,
+                rst_file='seg.xml',
+                output_bstates_dir='bstates_reverse',
+                output_bstates_file='bstates.txt',
+                use_weights=True,
+                seed=12345,
+            ),
+        ):
+            entry_point()
         assert os.path.isfile('./bstates_reverse/bstates.txt'), "The bstates.txt file was not generated."
         assert os.path.isfile('./bstates_reverse/000001_000000.xml'), "The 000001_000000.xml file was not generated."
         assert os.path.isfile('./bstates_reverse/000002_000000.xml'), "The 000002_000000.xml file was not generated."
@@ -33,7 +50,22 @@ class Test_W_Reverse(unittest.TestCase):
         shutil.copy2(os.path.join(ref_dir, 'west_reverse_hdf5.cfg'), './west.cfg')
         shutil.copy2(os.path.join(ref_dir, 'west_reverse_hdf5.h5'), './west.h5')
         shutil.copytree(os.path.join(ref_dir, 'traj_segs_reverse_hdf5'), './traj_segs')
-        os.system('w_reverse')
+        with unittest.mock.patch(
+            target='argparse.ArgumentParser.parse_args',
+            return_value=argparse.Namespace(
+                we_h5filename='west.h5',
+                first_iter=1,
+                last_iter=None,
+                config_file='west.cfg',
+                max_n_bstates=10000,
+                rst_file=None,
+                output_bstates_dir='bstates_reverse',
+                output_bstates_file='bstates.txt',
+                use_weights=True,
+                seed=12345,
+            ),
+        ):
+            entry_point()
         assert os.path.isfile('./bstates_reverse/bstates.txt'), "The bstates.txt file was not generated."
         assert os.path.isfile('./bstates_reverse/000002_000000.xml'), "The 000002_000000.xml file was not generated."
         assert os.path.isfile('./bstates_reverse/000003_000000.xml'), "The 000003_000000.xml file was not generated."
@@ -51,7 +83,22 @@ class Test_W_Reverse(unittest.TestCase):
         shutil.copy2(os.path.join(ref_dir, 'west_reverse_hdf5.cfg'), './west.cfg')
         shutil.copy2(os.path.join(ref_dir, 'west_reverse_hdf5.h5'), './west.h5')
         shutil.copytree(os.path.join(ref_dir, 'traj_segs_reverse_hdf5'), './traj_segs')
-        os.system('w_reverse --rst-file parent.xml')
+        with unittest.mock.patch(
+            target='argparse.ArgumentParser.parse_args',
+            return_value=argparse.Namespace(
+                we_h5filename='west.h5',
+                first_iter=1,
+                last_iter=None,
+                config_file='west.cfg',
+                max_n_bstates=10000,
+                rst_file='parent.xml',
+                output_bstates_dir='bstates_reverse',
+                output_bstates_file='bstates.txt',
+                use_weights=True,
+                seed=12345,
+            ),
+        ):
+            entry_point()
         assert os.path.isfile('./bstates_reverse/bstates.txt'), "The bstates.txt file was not generated."
         assert os.path.isfile('./bstates_reverse/000002_000000.xml'), "The 000002_000000.xml file was not generated."
         assert os.path.isfile('./bstates_reverse/000003_000000.xml'), "The 000003_000000.xml file was not generated."

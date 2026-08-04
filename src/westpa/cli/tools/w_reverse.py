@@ -98,7 +98,7 @@ class W_Reverse(WESTTool):
             help="Include the recycled event weight when making the bstates.txt file",
         )
         rgroup.add_argument(
-            '--seed', type=int, default=12345, dest='seed', help='Seed for randomly choosing which states to include'
+            '--seed', type=int, default=None, dest='seed', help='Seed for randomly choosing which states to include'
         )
 
     def process_args(self, args):
