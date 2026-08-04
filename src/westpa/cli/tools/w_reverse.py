@@ -216,10 +216,7 @@ class W_Reverse(WESTTool):
 
             # Number of reverse bstates created
             # different totals if the max is less than total succ_pairs to loop
-            if self.max_n_bstates < len(succ_pairs):
-                total_pairs = self.max_n_bstates
-            else:
-                total_pairs = len(succ_pairs)
+            total_pairs = min(self.max_n_bstates, len(succ_pairs))
             # then for each pair
             rng = random.default_rng(12345)
             indices = rng.choice(
