@@ -90,11 +90,15 @@ class W_Reverse(WESTTool):
         )
         # TODO: may need to be adjusted to store False when included
         rgroup.add_argument(
-            "--no-weights",
+            "--use-weights",
             "-nw",
+            type=bool,
+            default=True,
             dest="use_weights",
-            action="store_false",
-            help="Don't include the recycled event weight when making the bstates.txt file",
+            help="Include the recycled event weight when making the bstates.txt file",
+        )
+        rgroup.add_argument(
+            '--seed', type=int, default=12345, dest='seed', help='Seed for randomly choosing which states to include'
         )
 
     def process_args(self, args):
@@ -121,7 +125,6 @@ class W_Reverse(WESTTool):
             Name of the output bstates file, default 'bstates.txt'.
         use_weights : bool
             By default, include the recycled event weight when making the bstates.txt file.
-            temp_dir : str
         """
         self.data_reader.process_args(args)
         self.config_required = True
@@ -180,6 +183,8 @@ class W_Reverse(WESTTool):
         self.output_bstates_dir = str(args.output_bstates_dir)
         self.output_bstates_file = str(args.output_bstates_file)
         self.use_weights = args.use_weights
+        self.seed = args.seed
+        log.info(f'Using seed: {self.seed}')
 
     def w_succ(self):
         """
@@ -218,14 +223,14 @@ class W_Reverse(WESTTool):
             # different totals if the max is less than total succ_pairs to loop
             total_pairs = min(self.max_n_bstates, len(succ_pairs))
             # then for each pair
-            rng = random.default_rng(12345)
-            indices = rng.choice(
-                len(succ_pairs), size=total_pairs, p=succ_pairs[:, 2] / sum(succ_pairs[:, 2], dtype=float), replace=False
+            rng = random.default_rng(self.seed)
+            succ_pairs_used = rng.choice(
+                succ_pairs, size=total_pairs, p=succ_pairs[:, 2] / sum(succ_pairs[:, 2], dtype=float), replace=False
             )
-            for idx, index in tqdm(enumerate(indices), total=total_pairs, desc="New bstates"):
-                iteration = int(succ_pairs[index][0])
-                walker = int(succ_pairs[index][1])
-                weight = float(succ_pairs[index][2])
+            for idx, succ_pair_used in tqdm(enumerate(succ_pairs_used), total=total_pairs, desc="New bstates"):
+                iteration = int(succ_pair_used[0])
+                walker = int(succ_pair_used[1])
+                weight = float(succ_pair_used[2])
                 # check if using HDF5 framework
                 if self.h5_framework:
                     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -285,7 +290,7 @@ class W_Reverse(WESTTool):
                 if self.use_weights:
                     bstates_f.write(f"{idx} {weight:.3e} {rst_dest_name}\n")
                 else:
-                    bstates_f.write(f"{idx} {1/total_pairs:.3e)} {rst_dest_name}\n")
+                    bstates_f.write(f"{idx} {1 / total_pairs:.3e)} {rst_dest_name}\n")
 
 
 def entry_point():
