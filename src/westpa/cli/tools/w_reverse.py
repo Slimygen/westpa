@@ -8,8 +8,8 @@ from westpa.core.propagators.loaders import restart_writer
 from westpa.core.segment import Segment
 from westpa.core._rc import WESTRC
 from westpa.tools import WESTTool, WESTDataReader
-from numpy import flatnonzero, random, array, sum
-from westpa.core.trajectory import find_top_traj_file, mdtraj_supported_extensions
+from numpy import flatnonzero, random, asarray, sum
+from westpa.core.trajectory import mdtraj_supported_extensions
 
 log = logging.getLogger('w_reverse')
 
@@ -204,7 +204,42 @@ class W_Reverse(WESTTool):
                 [iteration_index + 1, index, self.h5['iterations'][iteration]['seg_index']['weight'][index]] for index in indices
             ]
             succ += temp_array
-        return array(succ)
+        return asarray(succ)
+
+    def copy_traj(self, search_folder, iteration, walker):
+        files = [file for file in os.listdir(search_folder) if not file.startswith('.')]
+        if self.rst_file in files:
+            rst_dest_name = f"{iteration:06d}_{walker:06d}.{self.rst_extension}"
+            shutil.copyfile(os.path.join(search_folder, self.rst_file), os.path.join(self.output_bstates_dir, rst_dest_name))
+            return rst_dest_name
+        if self.rst_extension:
+            possible_hits = [file for file in files if file.endswith(self.rst_extension)]
+            if len(possible_hits) > 1:
+                possible_hits = sorted(possible_hits, key=lambda file: os.path.getctime(file))
+                log.warning(
+                    f'Found {possible_hits[-1]} as restart file for iteration {iteration} and walker {walker} based on file creation times. if this is incorrect, provide a file name using flag --rst-file'
+                )
+            rst_dest_name = f"{iteration:06d}_{walker:06d}.{self.rst_extension}"
+            shutil.copyfile(os.path.join(search_folder, possible_hits[-1]), os.path.join(self.output_bstates_dir, rst_dest_name))
+            return rst_dest_name
+        possible_hits = []
+        for test_extension in self.traj_exc_exts:
+            possible_hits += [file for file in files if file.endswith(test_extension)]
+        if len(possible_hits) < 1:
+            for test_extension in self.traj_or_top_exts:
+                possible_hits += [file for file in files if file.endswith(test_extension)]
+        if len(possible_hits) == 1:
+            log.warning(
+                f'Found {possible_hits[-1]} as restart file for iteration {iteration} and walker {walker} based on mdtraj extensions. if this is incorrect, provide a file name using flag --rst-file'
+            )
+        if len(possible_hits) > 1:
+            possible_hits = sorted(possible_hits, key=lambda file: os.path.getctime(os.path.join(search_folder, file)))
+            log.warning(
+                f'Found {possible_hits[-1]} as restart file for iteration {iteration} and walker {walker} based on file creation times. if this is incorrect, provide a file name using flag --rst-file'
+            )
+        rst_dest_name = f"{iteration:06d}_{walker:06d}.{possible_hits[-1].split('.')[-1]}"
+        shutil.copyfile(os.path.join(search_folder, possible_hits[-1]), os.path.join(self.output_bstates_dir, rst_dest_name))
+        return rst_dest_name
 
     def go(self):
         """
@@ -231,6 +266,7 @@ class W_Reverse(WESTTool):
                 iteration = int(succ_pair_used[0])
                 walker = int(succ_pair_used[1])
                 weight = float(succ_pair_used[2])
+                rst_dest_name = ''
                 # check if using HDF5 framework
                 if self.h5_framework:
                     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -239,51 +275,14 @@ class W_Reverse(WESTTool):
                         h5file = WESTIterationFile(self.traj_seg.format(n_iter=iteration))
                         h5file.read_restart(segment)
                         restart_writer(tmpdirname, segment)
-                        # Look at all files in the temp directory
-                        if self.rst_file:
-                            rst_dest_name = f"{iteration:06d}_{walker:06d}.{self.rst_extension}"
-                            temp_dir_contents = os.listdir(tmpdirname)
-                            file_not_found = True
-                            for temp_file in temp_dir_contents:
-                                # Move and rename only the restart file with the user specified extension to the bstate directory
-                                if temp_file.lower() == self.rst_file:
-                                    file_not_found = False
-                                    shutil.move(
-                                        os.path.join(tmpdirname, temp_file), os.path.join(self.output_bstates_dir, rst_dest_name)
-                                    )
-                                    break
-                            if file_not_found:
-                                log.warning(
-                                    f"File {self.rst_file} is not present in the restart data of {self.traj_seg.format(n_iter=iteration)}. Looking for other trajectory files"
-                                )
-                                _, traj_file = find_top_traj_file(tmpdirname, [], self.traj_exc_exts)
-                                if not traj_file:
-                                    _, traj_file = find_top_traj_file(tmpdirname, [], self.traj_or_top_exts)
-                                extension = traj_file.split('/')[-1].split('.')[-1].lower()
-                                rst_dest_name = f"{iteration:06d}_{walker:06d}.{extension}"
-                                shutil.move(traj_file, os.path.join(self.output_bstates_dir, rst_dest_name))
-                        else:
-                            _, traj_file = find_top_traj_file(tmpdirname, [], self.traj_exc_exts)
-                            if not traj_file:
-                                _, traj_file = find_top_traj_file(tmpdirname, [], self.traj_or_top_exts)
-                            extension = traj_file.split('/')[-1].split('.')[-1].lower()
-                            rst_dest_name = f"{iteration:06d}_{walker:06d}.{extension}"
-                            shutil.move(traj_file, os.path.join(self.output_bstates_dir, rst_dest_name))
+                        rst_dest_name = self.copy_traj(tmpdirname, iteration, walker)
                 else:
-                    if not self.rst_file:
-                        log.warning(
-                            "The flag --rst-file that defines the restart file name must be used if the HDF5 frame work is not used!!"
-                        )
-                    rst_dest_name = f"{iteration:06d}_{walker:06d}.{self.rst_extension}"
-                    # find the corresponding restart file
-                    seg_path = (
+                    search_folder = (
                         self.traj_segs_path.replace('segment.n_iter', 'n_iter')
                         .replace('segment.seg_id', 'seg_id')
                         .format(n_iter=iteration, seg_id=walker)
                     )
-                    # os.listdir(seg_path)
-                    rst_file_path = os.path.join(seg_path, self.rst_file)
-                    shutil.copyfile(rst_file_path, os.path.join(self.output_bstates_dir, rst_dest_name))
+                    rst_dest_name = self.copy_traj(search_folder, iteration, walker)
                 # fill out the bstates.txt file with name and weight
                 # but only use weights if requested, otherwise use equal weights
                 # bstates.txt row format: bstate_n | weight | bstate_filename
