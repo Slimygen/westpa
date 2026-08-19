@@ -13,9 +13,9 @@ class Test_W_Reverse(unittest.TestCase):
         '''Testing if w_reverse runs as expected and the h5 files looks good.'''
 
         ref_dir = os.path.join(os.path.dirname(__file__), '../refs')
-        shutil.copy2(os.path.join(ref_dir, 'west_reverse_no_hdf5.cfg'), './west.cfg')
-        shutil.copy2(os.path.join(ref_dir, 'west_reverse_no_hdf5.h5'), './west.h5')
-        shutil.copytree(os.path.join(ref_dir, 'traj_segs_reverse_no_hdf5'), './traj_segs')
+        shutil.copy2(os.path.join(ref_dir, 'west_reverse_no_hdf5.cfg'), 'west.cfg')
+        shutil.copy2(os.path.join(ref_dir, 'west_reverse_no_hdf5.h5'), 'west.h5')
+        shutil.copytree(os.path.join(ref_dir, 'traj_segs_reverse_no_hdf5'), 'traj_segs')
         with unittest.mock.patch(
             target='argparse.ArgumentParser.parse_args',
             return_value=argparse.Namespace(
@@ -29,6 +29,7 @@ class Test_W_Reverse(unittest.TestCase):
                 output_bstates_file='bstates.txt',
                 use_weights=True,
                 seed=12345,
+                verbosity=5,
             ),
         ):
             entry_point()
@@ -47,9 +48,9 @@ class Test_W_Reverse(unittest.TestCase):
         '''Testing if w_reverse runs as expected and the h5 files looks good.'''
 
         ref_dir = os.path.join(os.path.dirname(__file__), '../refs')
-        shutil.copy2(os.path.join(ref_dir, 'west_reverse_hdf5.cfg'), './west.cfg')
-        shutil.copy2(os.path.join(ref_dir, 'west_reverse_hdf5.h5'), './west.h5')
-        shutil.copytree(os.path.join(ref_dir, 'traj_segs_reverse_hdf5'), './traj_segs')
+        shutil.copy2(os.path.join(ref_dir, 'west_reverse_hdf5.cfg'), 'west.cfg')
+        shutil.copy2(os.path.join(ref_dir, 'west_reverse_hdf5.h5'), 'west.h5')
+        shutil.copytree(os.path.join(ref_dir, 'traj_segs_reverse_hdf5'), 'traj_segs')
         with unittest.mock.patch(
             target='argparse.ArgumentParser.parse_args',
             return_value=argparse.Namespace(
@@ -63,6 +64,7 @@ class Test_W_Reverse(unittest.TestCase):
                 output_bstates_file='bstates.txt',
                 use_weights=True,
                 seed=12345,
+                verbosity=5,
             ),
         ):
             entry_point()
@@ -80,9 +82,9 @@ class Test_W_Reverse(unittest.TestCase):
         '''Testing if w_reverse runs as expected and the h5 files looks good.'''
 
         ref_dir = os.path.join(os.path.dirname(__file__), '../refs')
-        shutil.copy2(os.path.join(ref_dir, 'west_reverse_hdf5.cfg'), './west.cfg')
-        shutil.copy2(os.path.join(ref_dir, 'west_reverse_hdf5.h5'), './west.h5')
-        shutil.copytree(os.path.join(ref_dir, 'traj_segs_reverse_hdf5'), './traj_segs')
+        shutil.copy2(os.path.join(ref_dir, 'west_reverse_hdf5.cfg'), 'west.cfg')
+        shutil.copy2(os.path.join(ref_dir, 'west_reverse_hdf5.h5'), 'west.h5')
+        shutil.copytree(os.path.join(ref_dir, 'traj_segs_reverse_hdf5'), 'traj_segs')
         with unittest.mock.patch(
             target='argparse.ArgumentParser.parse_args',
             return_value=argparse.Namespace(
@@ -96,6 +98,7 @@ class Test_W_Reverse(unittest.TestCase):
                 output_bstates_file='bstates.txt',
                 use_weights=True,
                 seed=12345,
+                verbosity=5,
             ),
         ):
             entry_point()
