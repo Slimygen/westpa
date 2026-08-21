@@ -8,7 +8,7 @@ from westpa.core.propagators.loaders import restart_writer
 from westpa.core.segment import Segment
 from westpa.core._rc import WESTRC
 from westpa.tools import WESTTool, WESTDataReader
-from numpy import flatnonzero, random, asarray, sum
+import numpy as np
 from westpa.core.trajectory import mdtraj_supported_extensions
 
 log = logging.getLogger('w_reverse')
@@ -199,12 +199,12 @@ class W_Reverse(WESTTool):
             enumerate(self.h5['iterations'].keys()), total=len(self.h5['iterations'].keys()), desc="w_succ"
         ):
             endpoint_type = self.h5['iterations'][iteration]['seg_index']['endpoint_type']
-            indices = flatnonzero(endpoint_type == Segment.SEG_ENDPOINT_RECYCLED)
+            indices = np.flatnonzero(endpoint_type == Segment.SEG_ENDPOINT_RECYCLED)
             temp_array = [
                 [iteration_index + 1, index, self.h5['iterations'][iteration]['seg_index']['weight'][index]] for index in indices
             ]
             succ += temp_array
-        return asarray(succ)
+        return np.asarray(succ)
 
     def copy_traj(self, search_folder, iteration, walker):
         files = [file for file in os.listdir(search_folder) if not file.startswith('.')]
@@ -251,41 +251,61 @@ class W_Reverse(WESTTool):
         # succ_pairs = [(73, 130, 5.991585103556223e-13)]
         # make directory for bstates_reverse if it doesn't already exist
         os.makedirs(self.output_bstates_dir, exist_ok=True)
+        # Number of reverse bstates created
+        # different totals if the max is less than total succ_pairs to loop
+        total_pairs = min(self.max_n_bstates, len(succ_pairs))
+        # then for each pair
+        rng = np.random.default_rng(self.seed)
+        succ_pairs_used = rng.choice(
+            succ_pairs, size=total_pairs, p=succ_pairs[:, 2] / np.sum(succ_pairs[:, 2], dtype=float), replace=False
+        )
+        for idx, succ_pair_used in tqdm(enumerate(succ_pairs_used), total=total_pairs, desc="New bstates"):
+            iteration = int(succ_pair_used[0])
+            walker = int(succ_pair_used[1])
+            weight = float(succ_pair_used[2])
+            rst_dest_name = ''
+            # check if using HDF5 framework
+            if self.h5_framework:
+                with tempfile.TemporaryDirectory() as tmpdirname:
+                    # Extract the restart data from the .h5 file
+                    segment = Segment(n_iter=iteration, seg_id=walker, weight=weight)
+                    h5file = WESTIterationFile(self.traj_seg.format(n_iter=iteration))
+                    h5file.read_restart(segment)
+                    restart_writer(tmpdirname, segment)
+                    self.copy_traj(tmpdirname, iteration, walker)
+            else:
+                search_folder = (
+                    self.traj_segs_path.replace('segment.n_iter', 'n_iter')
+                    .replace('segment.seg_id', 'seg_id')
+                    .format(n_iter=iteration, seg_id=walker)
+                )
+                self.copy_traj(search_folder, iteration, walker)
         # create bstates.txt file
+        # fill out the bstates.txt file with name and weight
+        # but only use weights if requested, otherwise use equal weights
+        # bstates.txt row format: bstate_n | weight | bstate_filename
         with open(os.path.join(self.output_bstates_dir, self.output_bstates_file), "w") as bstates_f:
-
-            # Number of reverse bstates created
-            # different totals if the max is less than total succ_pairs to loop
-            total_pairs = min(self.max_n_bstates, len(succ_pairs))
-            # then for each pair
-            rng = random.default_rng(self.seed)
-            succ_pairs_used = rng.choice(
-                succ_pairs, size=total_pairs, p=succ_pairs[:, 2] / sum(succ_pairs[:, 2], dtype=float), replace=False
-            )
-            for idx, succ_pair_used in tqdm(enumerate(succ_pairs_used), total=total_pairs, desc="New bstates"):
+            for idx, succ_pair_used in enumerate(succ_pairs_used):
                 iteration = int(succ_pair_used[0])
                 walker = int(succ_pair_used[1])
                 weight = float(succ_pair_used[2])
-                rst_dest_name = ''
-                # check if using HDF5 framework
-                if self.h5_framework:
-                    with tempfile.TemporaryDirectory() as tmpdirname:
-                        # Extract the restart data from the .h5 file
-                        segment = Segment(n_iter=iteration, seg_id=walker, weight=weight)
-                        h5file = WESTIterationFile(self.traj_seg.format(n_iter=iteration))
-                        h5file.read_restart(segment)
-                        restart_writer(tmpdirname, segment)
-                        rst_dest_name = self.copy_traj(tmpdirname, iteration, walker)
+                files = [file for file in os.listdir(self.output_bstates_dir) if file.startswith(f'{iteration:06d}_{walker:06d}')]
+                if len(files) > 1:
+                    if f'{iteration:06d}_{walker:06d}.{self.rst_extension}' in files:
+                        rst_dest_name = f'{iteration:06d}_{walker:06d}.{self.rst_extension}'
+                    else:
+                        files = sorted(files, key=lambda file: os.path.getctime(file))
+                        rst_dest_name = files[-1]
+                        log.warning(
+                            f'Muliple files starting with {iteration:06d}_{walker:06d} are in the output directory. Using {rst_dest_name}. if this is incorrect, provide a file name using flag --rst-file so that the correct extension can be used'
+                        )
+                elif len(files) == 1:
+                    rst_dest_name = files[0]
                 else:
-                    search_folder = (
-                        self.traj_segs_path.replace('segment.n_iter', 'n_iter')
-                        .replace('segment.seg_id', 'seg_id')
-                        .format(n_iter=iteration, seg_id=walker)
+                    rst_dest_name = ''
+                    log.error(
+                        f'A restart file starting with {iteration:06d}_{walker:06d} should be present in the output directory but is not!!!'
                     )
-                    rst_dest_name = self.copy_traj(search_folder, iteration, walker)
-                # fill out the bstates.txt file with name and weight
-                # but only use weights if requested, otherwise use equal weights
-                # bstates.txt row format: bstate_n | weight | bstate_filename
                 if self.use_weights:
                     bstates_f.write(f"{idx} {weight:.3e} {rst_dest_name}\n")
                 else:
