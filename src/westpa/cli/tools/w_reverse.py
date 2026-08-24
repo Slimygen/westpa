@@ -142,20 +142,13 @@ class W_Reverse(WESTTool):
         # Look at the data_refs from the config file
         self.data_refs_dic = self.config['west']['data']['data_refs']
         # Default to not using HDF5 framework
-        self.h5_framework = False
-            self.h5_framework = True if 'iteration in self.data_refs_dic else False
-            dict_key = 'iteration' if self.h5_framework  else 'segment'
-
-            traj_seg_path_list = makepath(self.data_refs_dic[dict_key])   # Check kwargs to see what you want
-
-            # Proves that WEST_SIM_ROOT is not on os.environ, not replaced
-            if '$WEST_SIM_ROOT' in traj_seg_path_list:
-                traj_seg_path_list = traj_seg_path_list.replace('$WEST_SIM_ROOT', '{data_dir}')
-        self.traj_segs_path = '/'.join(traj_seg_path_list)
-        if starts_with_slash:
-            self.traj_segs_path = f'/{self.traj_segs_path}'
-        if self.h5_framework:
-            self.traj_seg = os.path.join(self.traj_segs_path, traj_seg_file_name)
+        self.h5_framework = True if 'iteration' in self.data_refs_dic else False
+        dict_key = 'iteration' if self.h5_framework else 'segment'
+        self.traj_seg_path = os.path.expandvars(
+            self.data_refs_dic[dict_key].replace('segment.n_iter', 'n_iter').replace('segment.seg_id', 'seg_id')
+        )
+        # Proves that WEST_SIM_ROOT is not on os.environ, not replaced
+        self.traj_seg_path = self.traj_seg_path.replace('$WEST_SIM_ROOT', '.')
         self.max_n_bstates = int(args.max_n_bstates)
         if args.rst_file:
             self.rst_file = str(args.rst_file).lower()
@@ -254,22 +247,17 @@ class W_Reverse(WESTTool):
             iteration = int(succ_pair_used[0])
             walker = int(succ_pair_used[1])
             weight = float(succ_pair_used[2])
-            rst_dest_name = ''
             # check if using HDF5 framework
             if self.h5_framework:
                 with tempfile.TemporaryDirectory() as tmpdirname:
                     # Extract the restart data from the .h5 file
                     segment = Segment(n_iter=iteration, seg_id=walker, weight=weight)
-                    h5file = WESTIterationFile(self.traj_seg.format(n_iter=iteration))
+                    h5file = WESTIterationFile(self.traj_seg_path.format(n_iter=iteration))
                     h5file.read_restart(segment)
                     restart_writer(tmpdirname, segment)
                     self.copy_traj(tmpdirname, iteration, walker)
             else:
-                search_folder = (
-                    self.traj_segs_path.replace('segment.n_iter', 'n_iter')
-                    .replace('segment.seg_id', 'seg_id')
-                    .format(n_iter=iteration, seg_id=walker)
-                )
+                search_folder = self.traj_seg_path.format(n_iter=iteration, seg_id=walker)
                 self.copy_traj(search_folder, iteration, walker)
         # create bstates.txt file
         # fill out the bstates.txt file with name and weight
