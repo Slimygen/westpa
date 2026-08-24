@@ -143,23 +143,14 @@ class W_Reverse(WESTTool):
         self.data_refs_dic = self.config['west']['data']['data_refs']
         # Default to not using HDF5 framework
         self.h5_framework = False
-        starts_with_slash = False
-        if 'iteration' in self.data_refs_dic.keys():
-            traj_seg_file_name = self.data_refs_dic['iteration'].split('/')[-1]
-            if self.data_refs_dic['iteration'][0] == '$':
-                traj_seg_path_list = self.data_refs_dic['iteration'].split('/')[1:-1]
-            else:
-                traj_seg_path_list = self.data_refs_dic['iteration'].split('/')[:-1]
-            if self.data_refs_dic['iteration'][0] == '/':
-                starts_with_slash = True
-            self.h5_framework = True
-        else:
-            if self.data_refs_dic['segment'][0] == '$':
-                traj_seg_path_list = self.data_refs_dic['segment'].split('/')[1:]
-            else:
-                traj_seg_path_list = self.data_refs_dic['segment'].split('/')
-            if self.data_refs_dic['segment'][0] == '/':
-                starts_with_slash = True
+            self.h5_framework = True if 'iteration in self.data_refs_dic else False
+            dict_key = 'iteration' if self.h5_framework  else 'segment'
+
+            traj_seg_path_list = makepath(self.data_refs_dic[dict_key])   # Check kwargs to see what you want
+            
+            # Proves that WEST_SIM_ROOT is not on os.environ, not replaced
+            if '$WEST_SIM_ROOT' in traj_seg_path_list:
+                traj_seg_path_list = traj_seg_path_list.replace('$WEST_SIM_ROOT', '{data_dir}')
         self.traj_segs_path = '/'.join(traj_seg_path_list)
         if starts_with_slash:
             self.traj_segs_path = f'/{self.traj_segs_path}'
