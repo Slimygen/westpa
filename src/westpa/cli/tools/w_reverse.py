@@ -147,7 +147,7 @@ class W_Reverse(WESTTool):
             dict_key = 'iteration' if self.h5_framework  else 'segment'
 
             traj_seg_path_list = makepath(self.data_refs_dic[dict_key])   # Check kwargs to see what you want
-            
+
             # Proves that WEST_SIM_ROOT is not on os.environ, not replaced
             if '$WEST_SIM_ROOT' in traj_seg_path_list:
                 traj_seg_path_list = traj_seg_path_list.replace('$WEST_SIM_ROOT', '{data_dir}')
