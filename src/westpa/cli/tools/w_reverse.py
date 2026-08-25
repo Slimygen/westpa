@@ -269,6 +269,7 @@ class W_Reverse(WESTTool):
                 walker = int(succ_pair_used[1])
                 weight = float(succ_pair_used[2])
                 files = [file for file in os.listdir(self.output_bstates_dir) if file.startswith(f'{iteration:06d}_{walker:06d}')]
+                rst_dest_name = ''
                 if len(files) > 1:
                     if f'{iteration:06d}_{walker:06d}.{self.rst_extension}' in files:
                         rst_dest_name = f'{iteration:06d}_{walker:06d}.{self.rst_extension}'
@@ -281,7 +282,6 @@ class W_Reverse(WESTTool):
                 elif len(files) == 1:
                     rst_dest_name = files[0]
                 else:
-                    rst_dest_name = ''
                     log.error(
                         f'A restart file starting with {iteration:06d}_{walker:06d} should be present in the output directory but is not!!!'
                     )
