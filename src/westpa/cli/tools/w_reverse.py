@@ -243,10 +243,12 @@ class W_Reverse(WESTTool):
         succ_pairs_used = rng.choice(
             succ_pairs, size=total_pairs, p=succ_pairs[:, 2] / np.sum(succ_pairs[:, 2], dtype=float), replace=False
         )
+        total_weight = 0
         for idx, succ_pair_used in tqdm(enumerate(succ_pairs_used), total=total_pairs, desc="New bstates"):
             iteration = int(succ_pair_used[0])
             walker = int(succ_pair_used[1])
             weight = float(succ_pair_used[2])
+            total_weight += weight
             # check if using HDF5 framework
             if self.h5_framework:
                 with tempfile.TemporaryDirectory() as tmpdirname:
@@ -286,7 +288,7 @@ class W_Reverse(WESTTool):
                         f'A restart file starting with {iteration:06d}_{walker:06d} should be present in the output directory but is not!!!'
                     )
                 if self.use_weights:
-                    bstates_f.write(f"{idx} {weight:.3e} {rst_dest_name}\n")
+                    bstates_f.write(f"{idx} {weight / total_weight:.3e} {rst_dest_name}\n")
                 else:
                     bstates_f.write(f"{idx} {1 / total_pairs:.3e)} {rst_dest_name}\n")
 
