@@ -185,7 +185,12 @@ class W_Reverse(WESTTool):
             endpoint_type = self.h5['iterations'][iteration]['seg_index']['endpoint_type']
             indices = np.flatnonzero(endpoint_type == Segment.SEG_ENDPOINT_RECYCLED)
             temp_array = [
-                [iteration_index + 1, index, self.h5['iterations'][iteration]['seg_index']['weight'][index]] for index in indices
+                [
+                    iteration_index if self.h5_framework else iteration_index + 1,
+                    index,
+                    self.h5['iterations'][iteration]['seg_index']['weight'][index],
+                ]
+                for index in indices
             ]
             succ += temp_array
         return np.asarray(succ)
