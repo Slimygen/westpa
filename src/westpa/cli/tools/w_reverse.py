@@ -15,20 +15,28 @@ log = logging.getLogger('w_reverse')
 
 
 class W_Reverse(WESTTool):
-    """
-    w_reverse: a tool for taking a WE simulation facilitated
-    through WESTPA with successful recycling events and generating
-    a new directory with the recycled restart files, which can then
-    serve as the bstates for a subsequent WE simulation in the opposite
-    direction, i.e. starting from the successfully recycled events and
-    then going back to the original starting point; overall reversed.
+    prog = 'w_reverse'
+    description = '''
+w_reverse: a tool for taking a WE simulation facilitated
+through WESTPA with successful recycling events and generating
+a new directory with the recycled restart files, which can then
+serve as the bstates for a subsequent WE simulation in the opposite
+direction, i.e. starting from the successfully recycled events and
+then going back to the original starting point; overall reversed.
 
-    TODO:
-        * option to use w_assign/assign.h5 output for successful bstate selection
-        * adapt for WE simulation traj_segs that used the hdf5 framework
-        * integrate into WESTPA, pull instance attributes and args from west.cfg
-        * change printing to west logging
-    """
+-----------------------------------------------------------------------------
+Output format
+-----------------------------------------------------------------------------
+
+The output directory (--output-bstates-dir,-obd, by default "bstates_reverse") contains the following files:
+
+  Trajectory files
+    One trajectory file is saved for each successful trajctory in the simulation. If there are more than --max-n-bstates successful trajectories, by default 10000, then only --max-n-bstates trajectories will be saved in a random order. Trajectory files will be named {iteration:06d}_{walker:06d} with its original extension.
+
+  Bstate file
+    File named --output-bstates-file, by default bstates.txt, contains the index, weight, and file name for each trajectory file in the output directory
+
+'''
 
     def __init__(self):
         super().__init__()
@@ -102,30 +110,6 @@ class W_Reverse(WESTTool):
         )
 
     def process_args(self, args):
-        """
-        Parameters
-        ----------
-        h5 : str
-            Path to west.h5 file
-        first_iter : int
-            By default start at iteration 1.
-        last_iter : int
-            Last iteration data to include, default is the last recorded iteration in the west.h5 file.
-        config_file : str
-            Name of the configuration file
-            max_n_bstates : int
-            Max number of bstates to copy over. Adjust this if you prefer only the first
-            n bstates found, default 10,000.
-        rst_file : str
-            Name of the restart file within each traj_segs/ subdirectory.
-        output_bstates_dir : str
-            Output directory for the bstates and output_bstates_file.
-            Default './bstates_reverse'.'
-        output_bstates_file : str
-            Name of the output bstates file, default 'bstates.txt'.
-        use_weights : bool
-            By default, include the recycled event weight when making the bstates.txt file.
-        """
         self.data_reader.process_args(args)
         self.config_required = True
         self.config_file = args.config_file
@@ -196,6 +180,21 @@ class W_Reverse(WESTTool):
         return np.asarray(succ)
 
     def copy_traj(self, search_folder, iteration, walker):
+        '''
+        Find the correct trajectory file in the serch_folder and copy it to the output_bstates_dir with the name {iteration:06d}_{walker:06d} and keeping the same extension
+
+        Arguments
+        ---------
+        search_folder: path or string describing a path to the directory that will be searched for a trajectory file
+
+        iteration: integer describing the iteration number of the trajectory
+
+        walker: integer describing the segment id of the trajectory
+
+        Returns
+        -------
+        rst_dest_name: string describing the name of the copied trajectory in the output_bstates_dir
+        '''
         files = [file for file in os.listdir(search_folder) if not file.startswith('.')]
         if self.rst_file in files:
             rst_dest_name = f"{iteration:06d}_{walker:06d}.{self.rst_extension}"
@@ -232,12 +231,9 @@ class W_Reverse(WESTTool):
 
     def go(self):
         """
-        Main public method for running w_reverse.
+        Main public method for running w_reverse. Runs w_succ to find the successful trajectories then iterates over them to copy the trajectories to the output_bstates_dir. Then it iterates over the trajectories again to make the output_bstates_file.
         """
         succ_pairs = self.w_succ()
-        # Data I was used for testing
-        # succ_pairs = [(73, 130, 5.991585103556223e-13), (74, 132, 7.489481379445279e-14), (74, 150, 7.489481379445279e-14)]
-        # succ_pairs = [(73, 130, 5.991585103556223e-13)]
         # make directory for bstates_reverse if it doesn't already exist
         os.makedirs(self.output_bstates_dir, exist_ok=True)
         # Number of reverse bstates created
