@@ -240,7 +240,8 @@ The output directory (--output-bstates-dir,-obd, by default "bstates_reverse") c
             # Attempt to find based on file extension provided through `--rst-file` / `self.rst_file`
             possible_hits = [file for file in files if file.endswith(self.rst_extension)]
             if len(possible_hits) > 1:
-                possible_hits = sorted(possible_hits, key=lambda file: os.path.getctime(file))
+                print(possible_hits)
+                possible_hits = sorted(possible_hits, key=lambda file: os.path.getctime(os.path.join(search_folder, file)))
                 log.warning(
                     f'Found {possible_hits[-1]} as restart file for iteration {iteration} and walker {walker} based on file creation times. if this is incorrect, provide a file name using flag --rst-file'
                 )
@@ -325,7 +326,7 @@ The output directory (--output-bstates-dir,-obd, by default "bstates_reverse") c
                     log.warning(
                         f'Muliple files starting with `{iteration:06d}_{walker:06d}` are in the output directory. Using {rst_dest_name=}. This is usually caused by running multiple rounds of `w_reverse` with different parameters.'
                     )
-                else:
+                elif rst_dest_name not in files:
                     log.error(
                         f'A restart file starting with {iteration:06d}_{walker:06d} should be present in the output directory but is not!!!'
                     )
